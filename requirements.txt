@@ -3,3 +3,4 @@
 # in this project's server/lib directory.
 Flask==0.10
 wsgiref==0.1.2
+tldextract==1.2.2
