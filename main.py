@@ -31,7 +31,6 @@ def login_or_register():
     result = user.password == password
   return {'success': result}
 
-
 @app.route('/users')
 @jsonify
 def get_user():
@@ -73,25 +72,44 @@ def reelay(relay_id=None):
   if request.method == 'GET':
     return {'relays': get_relays(relay_id)}
   elif request.method == 'POST':
-    result = add_relay(request.form['sender'], request.form['link'], request.form['recipients'])
+    result = add_relay(request.form['sender'], request.form['url'], request.form['recipients'])
     return {'success': result}
+
+
+def make_relay_map(relay):
+  return {
+      'id': relay.key.id(),
+      'sender': relay.sender,
+      'title': relay.title,
+      'description': relay.description,
+      'image': relay.image,
+      'favicon': relay.favicon,
+      'site': relay.site,
+      'url': relay.url,
+      'kind': relay.kind
+  }
 
 @app.route('/relays/from/<user_id>')
 @jsonify
 @validate_user
 def get_relays_from_user(user_id=None):
-  relay_items = Relay.query().filter(Relay.sender == user_id).iter()
+  relay_items = Relay.query().order(-Relay.timestamp).filter(Relay.sender == user_id ).filter(Relay.stale == False).iter()
   relays = []
-  for link in relay_items:
-    recipients = [recipient.recipients for recipient in RelayIndex.query(ancestor=link.key).iter()]
-    item = {'link': link.link, 'recipients': recipients}
-    relays.append(item)
+  for relay_item in relay_items:
+    relay_index = RelayIndex.query(ancestor=relay_item.key).get()
+    item_map = make_relay_map(relay_item)
+    item_map.pop('sender', None)
+    item_map['recipients'] = relay_index.recipients if relay_index is not None else []
+    relays.append(item_map)
   return {'relays': relays}
   
+
 @app.route('/relays/to/<user_id>')
 @jsonify
 def get_relay_to_user(user_id=None):
   qo = ndb.QueryOptions(keys_only=True)
   indexes = RelayIndex.query().filter(RelayIndex.recipients == user_id).iter(options=qo)
   relays = [key.parent().get() for key in indexes]
-  return {'relays' : [{'sender':r.sender, 'link':r.link} for r in relays]}
+  relays.sort(key=lambda x: x.timestamp)
+  relays.reverse()
+  return {'relays' : [make_relay_map(r) for r in relays if not r.stale]}
