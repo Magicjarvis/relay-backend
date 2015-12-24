@@ -11,7 +11,7 @@ import logging
 # sys.path includes 'server/lib' due to appengine_config.py
 from flask import Flask, request
 from decorators import jsonify, validate_user
-from models import User, UserIndex, Relay, SentRelay, RelayIndex, add_friend, add_relay, get_relays, delete_db
+from models import User, Friendship, Relay, SentRelay, RelayIndex, FriendRequest, add_friend, add_relay, get_relays, delete_db
 from gae_python_gcm.gcm import GCMMessage, GCMConnection
 from util import extract_url, sanitize_username
 
@@ -47,7 +47,7 @@ def send_push_notification(sender, recipients, title):
       success = False
   return success
 
-def add_user(username, password, email, gcm_id=None):
+def add_user(username, password, email, gcm_id=None, session_token=None):
   username = sanitize_username(username)
   gcm_ids = [gcm_id] if gcm_id else []
   hashed_password = sha256_crypt.encrypt(password)
@@ -55,7 +55,8 @@ def add_user(username, password, email, gcm_id=None):
     id=username,
     password=hashed_password,
     email=email,
-    gcm_ids=gcm_ids
+    gcm_ids=gcm_ids,
+    session_token=session_token
   ).put()
   return new_user is not None
 
@@ -76,6 +77,13 @@ def unregister_gcm():
     result = False
   return {'success': result}
 
+@app.route('/foob')
+@jsonify
+def test_latecy():
+  return {'foo': str([x for x in User.query().filter(User.email == 'magicjarvis@gmail.com').iter()]),
+    'bar': str([y for y in RelayIndex.query().filter('russell' == RelayIndex.recipients).iter()])
+      }
+
 @app.route('/test/<user_id>')
 @jsonify
 def test_latency(user_id):
@@ -92,8 +100,8 @@ def login():
   username = request.form['username']
   password = request.form['password']
   gcm_id = request.form.get('gcm_id')
-  result = False
   user = get_user(username)
+  session_token = None
   if user and sha256_crypt.verify(password, user.password):
     session_token = generate_session_id()
     user.session_token = session_token
@@ -114,12 +122,16 @@ def register():
   user = get_user(username)
   result = None
   if not user:
-    result = add_user(
+    session_token=generate_session_id()
+    new_user = add_user(
       username,
       password,
       email,
-      gcm_id=gcm_id
+      gcm_id=gcm_id,
+      session_token=session_token
     )
+    if new_user:
+      result = session_token
   return {'session': result}
 
 
@@ -132,29 +144,62 @@ def get_all_users_endpoint():
 @jsonify
 def get_user_friends(user_id):
   user = get_user(user_id)
-  if user is not None:
-    user_index = UserIndex.query(ancestor=user.key).get()
-    return user_index.friends if user_index is not None else []
-  return {'error': 'Invalid User'}
+  friendships = Friendship.query().filter(Friendship.user == user_id).iter()
+  return {'friends': [friendship.other_user for friendship in friendships]}
+  
+
+def confirm_friend_request(friend_request):
+  friend_request.active = False
+  friend_request.put()
+  return add_friend(friend_request.sender, friend_request.recipient)
+
+
+@app.route('/friend_requests', methods=['POST'])
+@jsonify
+def post_friend_request():
+  success = False
+  recipient, sender = request.form['recipient'], request.form['sender']
+
+  existing_friendship = Friendship.query().filter(Friendship.user == sender).get()
+  if existing_friendship:
+    return {'success': False}
+  
+  # maybe you're requesting someone who's requested you
+  opposite_request = FriendRequest.query().filter(FriendRequest.sender==recipient, FriendRequest.recipient==sender).get()
+  logging.info('the value of opposite_request %s'%(str(opposite_request)))
+  if opposite_request:
+    logging.info('opposite request is real so we confirm the request')
+    return {'success': confirm_friend_request(opposite_request)}
+
+  existing = FriendRequest.query().filter(FriendRequest.sender==sender, FriendRequest.recipient==recipient).get()
+  logging.info('the value of existing %s'%(str(existing)))
+  if recipient != sender and not existing:
+    logging.info('we are creating a friend request')
+    friend_request = FriendRequest(recipient=recipient, sender=sender).put()
+    success = friend_request is not None
+
+  return {'success': success}
 
 @app.route('/users/<user_id>/friend_requests')
 @jsonify
 def get_pending_friends(user_id):
   user = get_user(user_id)
-  if user is not None:
-    friends_model = UserIndex.query(ancestor=user.key).get()
-    user_friends_names = friends_model.friends if friends_model is not None else []
-    qo = ndb.QueryOptions(keys_only=True)
-    friender_keys = UserIndex.query().filter(UserIndex.friends == user.key.id()).iter(options=qo)
-    friender_usernames = [key.parent().id() for key in friender_keys]
-    return {'requests': list(set(friender_usernames) - set(user_friends_names))}
-  return {'error': 'Invalid User'}
+  friend_requests = FriendRequest.query().filter(FriendRequest.recipient == user.key.id(), FriendRequest.active == True).iter()
+  return {'friend_requests': [friend_request.sender for friend_request in friend_requests]}
 
-@app.route('/friends', methods=['POST'])
+@app.route('/friend_requests/accept', methods=['POST'])
 @jsonify
 def post_friends():
+  result = False
   sender, recipient = request.form['sender'], request.form['recipient']
-  result = add_friend(sender, recipient) if sender != recipient else False
+  # we need an existing friend request
+  existing = FriendRequest.query().filter(
+    FriendRequest.sender == sender,
+    FriendRequest.recipient == recipient,
+    FriendRequest.active == True
+  ).get()
+  if existing:
+    result = confirm_friend_request(existing)
   return {'success': result}
 
 

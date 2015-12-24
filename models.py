@@ -28,17 +28,10 @@ def get_relays(sent_relay_id, offset):
     sent_relays.append(item)
   return sent_relays
 
-def add_friend(sender_name, recipient_name):
-  recipient = User.get_by_id(recipient_name)
-  sender = User.get_by_id(sender_name)
-  if None in [sender, recipient]:
-    return False
-  sender_index = UserIndex.get_or_insert(sender_name, parent=sender.key)
-  sender_friends = sender_index.friends
-  if recipient_name not in sender_friends:
-    sender_friends.append(recipient_name)
-    sender_index.put()
-
+@ndb.transactional(xg=True)
+def add_friend(user, other_user):
+  Friendship(user=user, other_user=other_user).put()
+  Friendship(user=other_user, other_user=user).put()
   return True
 
 def strip_tags(url):
@@ -95,18 +88,26 @@ def delete_db():
   ndb.delete_multi(Relay.query().fetch(keys_only=True))
   ndb.delete_multi(RelayIndex.query().fetch(keys_only=True))
   ndb.delete_multi(SentRelay.query().fetch(keys_only=True))
+  ndb.delete_multi(Friendship.query().fetch(keys_only=True))
+  ndb.delete_multi(FriendRequest.query().fetch(keys_only=True))
 
 class User(ndb.Model):
   """Models a user."""
   password = ndb.StringProperty(required=True)
-  email = ndb.StringProperty(required=True)
+  email = ndb.StringProperty()
 
-  session_token = ndb.StringProperty()
+  session_token = ndb.StringProperty(indexed=True) # probably wanna index this?
   gcm_ids = ndb.StringProperty(repeated=True)
 
-class UserIndex(ndb.Model):
-  """Adds the friendship aspect to the user model."""
-  friends = ndb.StringProperty(repeated=True)
+class Friendship(ndb.Model):
+  user = ndb.StringProperty(indexed=True, required=True)
+  other_user = ndb.StringProperty(indexed=True, required=True)
+  active = ndb.BooleanProperty(indexed=True, default=True)
+
+class FriendRequest(ndb.Model):
+  recipient = ndb.StringProperty(indexed=True, required=True)
+  sender = ndb.StringProperty(indexed=True, required=True)
+  active = ndb.BooleanProperty(indexed=True, default=True)
 
 class Relay(ndb.Model):
   """Models a shared (relayed) url."""
