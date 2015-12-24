@@ -12,6 +12,12 @@ runtime: python27
 api_version: 1
 threadsafe: yes
 
+inbound_services:
+- warmup
+
+builtins:
+- remote_api: on
+
 # Handlers tell app engine how to route requests to your application.
 handlers:
 
@@ -44,6 +50,13 @@ handlers:
 libraries:
 - name: lxml
   version: latest
+- name: endpoints
+  version: latest
+- name: django
+  version: latest
+- name: pycrypto
+  version: latest
+
 
 skip_files:
 - ^(.*)lxml.*$

@@ -1,9 +1,11 @@
 import flask
 from flask import json, Response
 from functools import wraps
+from util import sanitize_username
 
 from google.appengine.ext import ndb
 from models import User 
+
 
 def jsonify(f):
   @wraps(f)
@@ -18,9 +20,12 @@ def validate_user(f):
     if user_id is None:
       return "No user id provided"
     qo = ndb.QueryOptions(keys_only=True)
-    user = User.get_by_id(kwargs['user_id'], options=qo)
+    user_id = sanitize_username(user_id)
+
+    user = User.get_by_id(user_id, options=qo)
     if user is None:
       return "Invalid User"
+    kwargs['user_id'] = user_id
     return f(*args, **kwargs)
   return check_valid_user
 

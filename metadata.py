@@ -1,4 +1,5 @@
 import urllib
+from util import extract_url, add_http
 from pyquery import PyQuery as pq
 
 OG_TAG = "[property='og:%s']"
@@ -12,7 +13,7 @@ def query_metas(pq):
   return _query
 
 def scrape(url):
-  query = pq(urllib.urlopen(url).read())
+  query = pq(url=add_http(url))
   meta_tags = query("meta")
 
   meta_info ={}
@@ -20,10 +21,10 @@ def scrape(url):
   meta_info['favicon'] = query('link[rel="shortcut icon"]').attr('href')
 
   get_field = query_metas(meta_tags)
-  meta_info['title'] = get_field('title')
+  meta_info['title'] = get_field('title') or query('title').text()
   meta_info['description'] = get_field('description')
   meta_info['id'] = get_field('url') or url
-  meta_info['image'] = get_field('image')
+  meta_info['image'] = extract_url(get_field('image'))
   meta_info['site'] = meta_tags(OG_TAG % 'site_name').attr('content')
   meta_info['kind'] = meta_tags(OG_TAG % 'type').attr('content')
 

@@ -4,3 +4,4 @@
 Flask==0.10
 wsgiref==0.1.2
 pyquery==1.2.6
+passlib==1.6.5
