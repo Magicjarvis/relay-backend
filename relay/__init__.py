@@ -10,3 +10,4 @@ import views.relays
 import views.login
 import views.post_relay_queue
 import views.friend_requests
+import views.test
