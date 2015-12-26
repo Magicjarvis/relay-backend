@@ -11,7 +11,7 @@ import logging
 # sys.path includes 'server/lib' due to appengine_config.py
 from flask import Flask, request
 from decorators import jsonify, validate_user
-from models import User, Friendship, Relay, SentRelay, RelayIndex, FriendRequest, add_friend, add_relay, get_relays, delete_db
+from models import User, Friendship, Relay, SentRelay, FriendRequest, add_friend, add_relay, add_relay_model, get_relays, delete_db
 from gae_python_gcm.gcm import GCMMessage, GCMConnection
 from util import extract_url, sanitize_username
 
@@ -77,21 +77,15 @@ def unregister_gcm():
     result = False
   return {'success': result}
 
-@app.route('/foob')
-@jsonify
-def test_latecy():
-  return {'foo': str([x for x in User.query().filter(User.email == 'magicjarvis@gmail.com').iter()]),
-    'bar': str([y for y in RelayIndex.query().filter('russell' == RelayIndex.recipients).iter()])
-      }
 
 @app.route('/test/<user_id>')
 @jsonify
 def test_latency(user_id):
   return {'Relays': [str(r) for r in Relay.query().iter()],
       'SentRelays': [str(sr) for sr in SentRelay.query().iter()],
-      'RelayIndex': [str(ri) for ri in RelayIndex.query().iter()],
       'UserID': sanitize_username(user_id),
-          'success': True}
+      'success': True
+  }
   
 # todo: add logout, should sessions->users? we always have the user right?
 @app.route('/login', methods=['POST'])
@@ -222,6 +216,30 @@ def reelay(sent_relay_id=None):
     return {'success': task.was_enqueued}
 
 
+@app.route('/relays/<user_id>/archive', methods=['POST'])
+@jsonify
+def archive_relay(user_id):
+  sent_relay_id = long(request.form['relay_id'])
+  sent_relay = SentRelay.get_by_id(sent_relay_id)
+  sent_relay.not_archived.remove(user_id)
+  sent_relay.archived.append(user_id)
+  result = sent_relay.put()
+  logging.info('sent_relay %s'%(str(sent_relay)))
+  return {'success': result is not None}
+
+
+@app.route('/relays/preview')
+@jsonify
+def relay_preview():
+  url = request.args.get('url')
+  if not url:
+    return {}
+  relay = Relay.get_by_id(url)
+  if not relay:
+    relay = add_relay_model(url)
+    relay.put()
+  return make_relay_map(relay)
+
 @app.route('/post_relay_queue', methods=['POST'])
 @jsonify
 def post_relay():
@@ -237,31 +255,39 @@ def post_relay():
   return {'success': result}
 
 
-@app.route('/relays/delete', methods=['POST'])
+@app.route('/relays/<user_id>/delete', methods=['POST'])
 @jsonify
-def delete_relay():
-  # TODO make this a delete, bitch
-  # TODO validate this. insecure as fuh
-  relay_id = int(request.form['relay_id'])
-  user_id = sanitize_username(request.form['user_id'])
+def delete_relay(user_id):
+  relay_id = long(request.form['relay_id'])
   sent_relay = SentRelay.get_by_id(relay_id) 
-  if sent_relay.saved:
+  recipients = sent_relay.recipients
+  success = False
+
+  # validate this
+  if user_id == sent_relay.sender:
     sent_relay.key.delete()
-    return {'success': True}
+    success = True
 
-  relay_index = RelayIndex.query(ancestor=sent_relay.key).get()
-  user_idx = relay_index.recipients.index(user_id) if user_id in relay_index.recipients else -1
-  result = None
-  if user_idx != -1:
-      result = relay_index.recipients.pop(user_idx)
-      relay_index.put()
-  return {'success': result is not None}
+  if user_id in recipients:
+    recipients.remove(user_id)
+    sent_relay.put()
+    success = True
 
-def make_relay_map(sent_relay):
+  return {'success': success}
+
+def make_sent_relay_map(sent_relay):
   relay = sent_relay.relay.get()
-  return {
+  sent_relay_map = make_relay_map(relay)
+  sent_relay_map.update(
+    {
       'id': sent_relay.key.id(),
       'sender': sent_relay.sender,
+    }
+  )
+  return sent_relay_map
+
+def make_relay_map(relay):
+  return {
       'title': relay.title,
       'description': relay.description,
       'image': relay.image,
@@ -280,12 +306,11 @@ def get_relays_from_user(user_id=None):
   sent_relay_items = SentRelay.query().order(-SentRelay.timestamp).filter(SentRelay.sender == user_id).filter(SentRelay.saved == False).iter(options=qo)
   sent_relays = []
   for sent_relay_item in sent_relay_items:
-    relay_index = RelayIndex.query(ancestor=sent_relay_item.key).get()
-    item_map = make_relay_map(sent_relay_item)
+    item_map = make_sent_relay_map(sent_relay_item)
     item_map.pop('sender', None)
-    if user_id in relay_index.recipients:
+    if user_id in sent_relay_item.recipients:
       continue
-    item_map['recipients'] = sent_relay_item.to
+    item_map['recipients'] = sent_relay_item.recipients
     sent_relays.append(item_map)
   return {'relays': sent_relays}
   
@@ -296,22 +321,15 @@ def clear_out_db():
   return {}
 
 def get_relays_for_recipient(user_id, offset):
-  qo = ndb.QueryOptions(keys_only=True, limit=10, offset=offset)
-  indexes = RelayIndex.query().filter(RelayIndex.recipients == user_id).order(-RelayIndex.timestamp).iter(options=qo)
-  result = [key.parent().get() for key in indexes]
-  logging.info('get_relay_for_recipient(%s) -> %s'%(user_id, str(result)))
-  return result
-
-@app.route('/relays/saved/<user_id>')
-@jsonify
-@validate_user
-def get_saved_relays(user_id=None):
-  offset = int(request.args.get('offset', 0))
   qo = ndb.QueryOptions(limit=10, offset=offset)
-  saved_relay_items = SentRelay.query().order(-SentRelay.timestamp).filter(SentRelay.sender == user_id).filter(SentRelay.saved == True).iter(options=qo)
-  return {
-    'relays' : map(make_relay_map, saved_relay_items)
-  }
+  sent_relays_iter = SentRelay.query().filter(
+    SentRelay.not_archived == user_id, # people who haven't archived
+  ).order(
+    -SentRelay.timestamp
+  ).iter(options=qo)
+  sent_relays = [item for item in sent_relays_iter]
+  logging.info('get_relay_for_recipient(%s) -> %s'%(user_id, str(sent_relays)))
+  return sent_relays
 
 @app.route('/relays/to/<user_id>')
 @jsonify
@@ -319,9 +337,10 @@ def get_saved_relays(user_id=None):
 def get_relay_to_user(user_id=None):
   offset = int(request.args.get('offset', 0))
   relays = get_relays_for_recipient(user_id, offset)
+
   return {'relays' :
     [
-      make_relay_map(r) for r in relays
-      if sanitize_username(r.sender) != sanitize_username(user_id)
+      make_sent_relay_map(r) for r in relays
+      if r.sender != user_id
     ]
   } # sanitize for sanity, probably dont need
