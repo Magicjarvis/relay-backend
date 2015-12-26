@@ -7,11 +7,11 @@ from relay import app
 from relay.decorators import jsonify
 from relay.decorators import validate_user
 
-from relay.models import Relay
-from relay.models import SentRelay
-from relay.models import add_relay_model
-from relay.models import get_relays
-from relay.models import get_relays_for_recipient
+from relay.models.relays import Relay
+from relay.models.relays import SentRelay
+from relay.models.relays import add_relay_model
+from relay.models.relays import get_relays
+from relay.models.relays import get_relays_for_recipient
 
 from relay.util import make_relay_map
 from relay.util import make_sent_relay_map

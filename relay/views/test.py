@@ -2,8 +2,8 @@
 from relay import app
 
 from relay.decorators import jsonify
-from relay.models import Relay
-from relay.models import SentRelay
+from relay.models.relays import Relay
+from relay.models.relays import SentRelay
 from relay.models import delete_db
 from relay.util import sanitize_username
 

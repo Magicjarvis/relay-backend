@@ -7,8 +7,8 @@ from flask import request
 from relay import app
 from relay.decorators import jsonify
 
-from relay.models import add_relay
-from relay.models import get_user
+from relay.models.relays import add_relay
+from relay.models.users import get_user
 from relay.util import extract_url
 
 from gae_python_gcm.gcm import GCMMessage

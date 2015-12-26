@@ -6,8 +6,8 @@ from flask import request
 from relay import app
 from relay.decorators import jsonify
 
-from relay.models import Friendship
-from relay.models import FriendRequest
+from relay.models.friends import Friendship
+from relay.models.friends import FriendRequest
 
 def confirm_friend_request(friend_request):
   friend_request.active = False

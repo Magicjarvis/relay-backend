@@ -4,7 +4,7 @@ from functools import wraps
 from util import sanitize_username
 
 from google.appengine.ext import ndb
-from models import User 
+from models.users import User
 
 
 def jsonify(f):

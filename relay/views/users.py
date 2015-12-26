@@ -2,7 +2,9 @@
 from relay import app
 from relay.decorators import jsonify
 
-from relay.models import User, Friendship, FriendRequest
+from relay.models.friends import FriendRequest
+from relay.models.friends import Friendship
+from relay.models.users import User
 
 @app.route('/users')
 @jsonify

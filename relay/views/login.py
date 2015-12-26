@@ -5,8 +5,8 @@ from relay import app
 from relay.decorators import jsonify
 from relay.decorators import validate_user
 
-from relay.models import add_user
-from relay.models import get_user
+from relay.models.users import add_user
+from relay.models.users import get_user
 
 from relay.auth import generate_session_id
 from relay.auth import verify_password 
