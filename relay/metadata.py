@@ -1,4 +1,4 @@
-import urllib
+import urllib2
 from util import extract_url, add_http
 from pyquery import PyQuery as pq
 
@@ -13,7 +13,9 @@ def query_metas(pq):
   return _query
 
 def scrape(url):
-  query = pq(url=add_http(url))
+  # nerdist, why can't you just be a bro?
+  request_url = urllib2.Request(add_http(url), headers={'User-agent': 'Mozilla/5.0'})
+  query = pq(url=request_url)
   meta_tags = query("meta")
 
   meta_info ={}
@@ -22,7 +24,7 @@ def scrape(url):
 
   get_field = query_metas(meta_tags)
   meta_info['title'] = get_field('title') or query('title').text()
-  meta_info['description'] = get_field('description')
+  meta_info['description'] = get_field('description')[:500]
   meta_info['id'] = get_field('url') or url
   meta_info['image'] = extract_url(get_field('image'))
   meta_info['site'] = meta_tags(OG_TAG % 'site_name').attr('content')

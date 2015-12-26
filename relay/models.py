@@ -1,9 +1,38 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from google.appengine.ext import ndb
 from metadata import scrape as scrape_metadata
 from util import sanitize_username
+from auth import hash_password
 import tldextract
+
+def get_relays_for_recipient(user_id, offset):
+  qo = ndb.QueryOptions(limit=10, offset=offset)
+  sent_relays_iter = SentRelay.query().filter(
+    SentRelay.not_archived == user_id, # people who haven't archived
+  ).order(
+    -SentRelay.timestamp
+  ).iter(options=qo)
+  sent_relays = [item for item in sent_relays_iter]
+  logging.info('get_relay_for_recipient(%s) -> %s'%(user_id, str(sent_relays)))
+  return sent_relays
+
+def get_user(username):
+  return User.get_by_id(username)
+
+def add_user(username, password, email, gcm_id=None, session_token=None):
+  username = sanitize_username(username)
+  gcm_ids = [gcm_id] if gcm_id else []
+  hashed_password = hash_password(password)
+  new_user = User(
+    id=username,
+    password=hashed_password,
+    email=email,
+    gcm_ids=gcm_ids,
+    session_token=session_token
+  ).put()
+  return new_user is not None
 
 def get_relays(sent_relay_id, offset):
   if sent_relay_id is not None:
@@ -28,17 +57,12 @@ def get_relays(sent_relay_id, offset):
     sent_relays.append(item)
   return sent_relays
 
+
 @ndb.transactional(xg=True)
 def add_friend(user, other_user):
   Friendship(user=user, other_user=other_user).put()
   Friendship(user=other_user, other_user=user).put()
   return True
-
-
-def strip_tags(url):
-  extracted = tldextract.extract(url)
-  subdomains = filter(lambda x: x != 'www', extracted.subdomain.split('.'))
-  return subdomains + [extracted.domain]
 
 
 def add_relay_model(url):
@@ -75,17 +99,16 @@ def add_relay(sender, url, recipients, save=False):
 
   sent_relay_key = sent_relay.put()
 
-  # If all the user did was save
-  if len(recipients) == 0:
-    return relay
+  # this should be a sent_relay but whatever
+  return relay
 
 
 def delete_db():
-  ndb.delete_multi(User.query().fetch(keys_only=True))
   ndb.delete_multi(Relay.query().fetch(keys_only=True))
   ndb.delete_multi(SentRelay.query().fetch(keys_only=True))
   ndb.delete_multi(Friendship.query().fetch(keys_only=True))
   ndb.delete_multi(FriendRequest.query().fetch(keys_only=True))
+
 
 class User(ndb.Model):
   """Models a user."""
@@ -95,15 +118,18 @@ class User(ndb.Model):
   session_token = ndb.StringProperty(indexed=True)
   gcm_ids = ndb.StringProperty(repeated=True)
 
+
 class Friendship(ndb.Model):
   user = ndb.StringProperty(indexed=True, required=True)
   other_user = ndb.StringProperty(indexed=True, required=True)
   active = ndb.BooleanProperty(indexed=True, default=True)
 
+
 class FriendRequest(ndb.Model):
   recipient = ndb.StringProperty(indexed=True, required=True)
   sender = ndb.StringProperty(indexed=True, required=True)
   active = ndb.BooleanProperty(indexed=True, default=True)
+
 
 class Relay(ndb.Model):
   """Models a shared (relayed) url."""
@@ -114,6 +140,7 @@ class Relay(ndb.Model):
   image = ndb.StringProperty()
   description = ndb.StringProperty()
   kind = ndb.StringProperty()
+
 
 class SentRelay(ndb.Model):
   relay = ndb.KeyProperty(kind='Relay')
