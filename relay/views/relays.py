@@ -7,27 +7,29 @@ from relay import app
 from relay.decorators import jsonify
 from relay.decorators import validate_user
 
-from relay.models.relays import Relay
-from relay.models.relays import SentRelay
 from relay.models.relays import add_relay_model
+from relay.models.relays import get_relay
 from relay.models.relays import get_relays
 from relay.models.relays import get_relays_for_recipient
+from relay.models.relays import get_sent_relay
+from relay.models.relays import get_sent_relays_for_user
 
+from relay.util import extract_url
 from relay.util import make_relay_map
 from relay.util import make_sent_relay_map
 
 # remove the direct models from these files, but babysteps
-from google.appengine.ext import ndb
 from google.appengine.api import taskqueue
 
 
 @app.route('/relays/preview')
 @jsonify
 def relay_preview():
-  url = request.args.get('url')
+  # standardize the url so that we maximize our caching
+  url = extract_url(request.args.get('url'))
   if not url:
     return {}
-  relay = Relay.get_by_id(url)
+  relay = get_relay(url)
   if not relay:
     relay = add_relay_model(url)
     relay.put()
@@ -38,11 +40,11 @@ def relay_preview():
 @jsonify
 def archive_relay(user_id):
   sent_relay_id = long(request.form['relay_id'])
-  sent_relay = SentRelay.get_by_id(sent_relay_id)
+  sent_relay = get_sent_relay(sent_relay_id)
   sent_relay.not_archived.remove(user_id)
   sent_relay.archived.append(user_id)
   result = sent_relay.put()
-  logging.info('sent_relay %s'%(str(sent_relay)))
+  logging.info('archiving sent_relay %s'%(str(sent_relay)))
   return {'success': result is not None}
 
 
@@ -68,8 +70,8 @@ def reelay(sent_relay_id=None):
 @app.route('/relays/<user_id>/delete', methods=['POST'])
 @jsonify
 def delete_relay(user_id):
-  relay_id = long(request.form['relay_id'])
-  sent_relay = SentRelay.get_by_id(relay_id) 
+  sent_relay_id = long(request.form['relay_id'])
+  sent_relay = get_sent_relay(sent_relay_id)
   recipients = sent_relay.recipients
   success = False
 
@@ -91,9 +93,11 @@ def delete_relay(user_id):
 @validate_user
 def get_relays_from_user(user_id=None):
   offset = int(request.args.get('offset', 0))
-  qo = ndb.QueryOptions(limit=10, offset=offset)
-  sent_relay_items = SentRelay.query().order(-SentRelay.timestamp).filter(SentRelay.sender == user_id).filter(SentRelay.saved == False).iter(options=qo)
+  limit = int(request.args.get('limit', 10))
+
   sent_relays = []
+
+  sent_relay_items = get_sent_relays_for_user(user_id, offset=offset, limit=limit)
   for sent_relay_item in sent_relay_items:
     item_map = make_sent_relay_map(sent_relay_item)
     item_map.pop('sender', None)

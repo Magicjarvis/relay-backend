@@ -9,6 +9,11 @@ def get_user(username):
   return User.get_by_id(username)
 
 
+def get_usernames():
+  """Dumb helper for /users."""
+  return [user.key.id() for user in User.query().iter()]
+
+
 def add_user(username, password, email, gcm_id=None, session_token=None):
   username = sanitize_username(username)
   gcm_ids = [gcm_id] if gcm_id else []

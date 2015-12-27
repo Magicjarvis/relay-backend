@@ -2,27 +2,31 @@
 from relay import app
 from relay.decorators import jsonify
 
-from relay.models.friends import FriendRequest
-from relay.models.friends import Friendship
-from relay.models.users import User
+from relay.models.friends import get_user_friends
+from relay.models.friends import get_user_friend_requests
+from relay.models.users import get_user
+from relay.models.users import get_usernames
+
 
 @app.route('/users')
 @jsonify
 def get_all_users_endpoint():
-  return {'users': [user.key.id() for user in User.query().iter()]}
+  return {'users': get_usernames()}
 
 
 @app.route('/users/<user_id>/friends')
 @jsonify
-def get_user_friends(user_id):
+def user_friends(user_id):
   user = get_user(user_id)
-  friendships = Friendship.query().filter(Friendship.user == user_id).iter()
-  return {'friends': [friendship.other_user for friendship in friendships]}
+  return {
+    'friends': get_user_friends(user_id)
+  } if user else {}
   
 
 @app.route('/users/<user_id>/friend_requests')
 @jsonify
-def get_pending_friends(user_id):
+def pending_friends(user_id):
   user = get_user(user_id)
-  friend_requests = FriendRequest.query().filter(FriendRequest.recipient == user.key.id(), FriendRequest.active == True).iter()
-  return {'friend_requests': [friend_request.sender for friend_request in friend_requests]}
+  return {
+    'friend_requests': get_user_friend_requests(user_id)
+  } if user else {}

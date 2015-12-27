@@ -5,6 +5,21 @@ from relay.util import sanitize_username
 from google.appengine.ext import ndb
 
 
+def get_relay(relay_id):
+  return Relay.get_by_id(relay_id)
+
+
+def get_sent_relay(sent_relay_id):
+  return SentRelay.get_by_id(sent_relay_id)
+
+
+def get_sent_relays_for_user(user, limit=10, offset=0):
+  return SentRelay.query().order(
+    -SentRelay.timestamp
+  ).filter(
+    SentRelay.sender == user
+  ).iter(options=ndb.QueryOptions(limit=limit, offset=offset))
+
 def get_relays_for_recipient(user_id, offset):
   qo = ndb.QueryOptions(limit=10, offset=offset)
   sent_relays_iter = SentRelay.query().filter(
@@ -18,6 +33,7 @@ def get_relays_for_recipient(user_id, offset):
 
 
 def get_relays(sent_relay_id, offset):
+  """Dumb test method for /relays which isn't used by clients"""
   if sent_relay_id is not None:
     return str(SentRelay.get_by_id(sent_relay_id))
 
@@ -92,8 +108,6 @@ class SentRelay(ndb.Model):
   relay = ndb.KeyProperty(kind='Relay')
   sender = ndb.StringProperty(indexed=True, required=True)
   timestamp = ndb.DateTimeProperty(indexed=True, auto_now_add=True)
-
-  saved = ndb.BooleanProperty(indexed=True, default=False)
 
   # crazy hack because of GAE datastore
   archived = ndb.StringProperty(repeated=True, indexed=True)

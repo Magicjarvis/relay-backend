@@ -6,13 +6,10 @@ from flask import request
 from relay import app
 from relay.decorators import jsonify
 
-from relay.models.friends import Friendship
-from relay.models.friends import FriendRequest
-
-def confirm_friend_request(friend_request):
-  friend_request.active = False
-  friend_request.put()
-  return add_friend(friend_request.sender, friend_request.recipient)
+from relay.models.friends import add_friend_request
+from relay.models.friends import confirm_friend_request
+from relay.models.friends import get_friendship
+from relay.models.friends import get_friend_request
 
 
 @app.route('/friend_requests', methods=['POST'])
@@ -21,22 +18,19 @@ def post_friend_request():
   success = False
   recipient, sender = request.form['recipient'], request.form['sender']
 
-  existing_friendship = Friendship.query().filter(Friendship.user == sender).get()
-  if existing_friendship:
+  # existing friendship?
+  if get_friendship(sender, recipient):
     return {'success': False}
   
   # maybe you're requesting someone who's requested you
-  opposite_request = FriendRequest.query().filter(FriendRequest.sender==recipient, FriendRequest.recipient==sender).get()
-  logging.info('the value of opposite_request %s'%(str(opposite_request)))
+  opposite_request = get_friend_request(recipient, sender)
   if opposite_request:
-    logging.info('opposite request is real so we confirm the request')
+    logging.info('User has already been requested. Confirming friend request')
     return {'success': confirm_friend_request(opposite_request)}
 
-  existing = FriendRequest.query().filter(FriendRequest.sender==sender, FriendRequest.recipient==recipient).get()
-  logging.info('the value of existing %s'%(str(existing)))
-  if recipient != sender and not existing:
-    logging.info('we are creating a friend request')
-    friend_request = FriendRequest(recipient=recipient, sender=sender).put()
+  existing_request = get_friend_request(recipient, sender)
+  if recipient != sender and not existing_request:
+    friend_request = send_friend_request(sender, recipient)
     success = friend_request is not None
 
   return {'success': success}
@@ -48,11 +42,7 @@ def post_friends():
   result = False
   sender, recipient = request.form['sender'], request.form['recipient']
   # we need an existing friend request
-  existing = FriendRequest.query().filter(
-    FriendRequest.sender == sender,
-    FriendRequest.recipient == recipient,
-    FriendRequest.active == True
-  ).get()
-  if existing:
-    result = confirm_friend_request(existing)
+  existing_request = get_friend_request(sender, recipient)
+  if existing_request:
+    result = confirm_friend_request(existing_request)
   return {'success': result}
