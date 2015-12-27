@@ -11,6 +11,7 @@ from relay.models.users import get_user
 from relay.auth import generate_session_id
 from relay.auth import verify_password 
 
+
 # todo: add logout, should sessions->users? we always have the user right?
 @app.route('/login', methods=['POST'])
 @jsonify

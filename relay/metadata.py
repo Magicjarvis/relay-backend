@@ -2,15 +2,18 @@ import urllib2
 from util import extract_url, add_http
 from pyquery import PyQuery as pq
 
+
 OG_TAG = "[property='og:%s']"
 TWITTER_TAG = "[name='twitter:%s']"
 REGULAR_TAG = "[name='%s']"
+
 
 def query_metas(pq):
   def _query(field):
     og = pq(OG_TAG % field).attr('content')
     return og or pq(TWITTER_TAG % field).attr('content') or pq(REGULAR_TAG % field).attr('content')
   return _query
+
 
 def scrape(url):
   # nerdist, why can't you just be a bro?
