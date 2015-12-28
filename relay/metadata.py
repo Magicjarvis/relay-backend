@@ -27,7 +27,12 @@ def scrape(url):
 
   get_field = query_metas(meta_tags)
   meta_info['title'] = get_field('title') or query('title').text()
-  meta_info['description'] = get_field('description')[:500]
+
+  description = get_field('description')
+  if description:
+    description = description[:500]
+
+  meta_info['description'] = description
   meta_info['id'] = get_field('url') or url
   meta_info['image'] = extract_url(get_field('image'))
   meta_info['site'] = meta_tags(OG_TAG % 'site_name').attr('content')

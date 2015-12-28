@@ -30,7 +30,7 @@ def post_friend_request():
 
   existing_request = get_friend_request(recipient, sender)
   if recipient != sender and not existing_request:
-    friend_request = send_friend_request(sender, recipient)
+    friend_request = add_friend_request(sender, recipient)
     success = friend_request is not None
 
   return {'success': success}
