@@ -6,12 +6,12 @@ from relay.auth import hash_password
 
 
 def get_user(username):
-  return User.get_by_id(username)
+  return User.get_by_id(sanitize_username(username))
 
 
 def get_usernames():
   """Dumb helper for /users."""
-  return [user.key.id() for user in User.query().iter()]
+  return [user.display_name for user in User.query().iter()]
 
 
 def add_user(username, password, email, gcm_id=None, session_token=None):

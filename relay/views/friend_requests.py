@@ -11,12 +11,15 @@ from relay.models.friends import confirm_friend_request
 from relay.models.friends import get_friendship
 from relay.models.friends import get_friend_request
 
+from relay.util import sanitize_username
+
 
 @app.route('/friend_requests', methods=['POST'])
 @jsonify
 def post_friend_request():
   success = False
-  recipient, sender = request.form['recipient'], request.form['sender']
+  recipient = sanitize_username(request.form['recipient'])
+  sender = sanitize_username(request.form['sender'])
 
   # existing friendship?
   if get_friendship(sender, recipient):
@@ -40,7 +43,8 @@ def post_friend_request():
 @jsonify
 def post_friends():
   result = False
-  sender, recipient = request.form['sender'], request.form['recipient']
+  recipient = sanitize_username(request.form['recipient'])
+  sender = sanitize_username(request.form['sender'])
   # we need an existing friend request
   existing_request = get_friend_request(sender, recipient)
   if existing_request:
