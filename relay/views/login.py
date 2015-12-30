@@ -11,12 +11,14 @@ from relay.models.users import get_user
 from relay.auth import generate_session_id
 from relay.auth import verify_password 
 
+from relay.util import sanitize_username
+
 
 # todo: add logout, should sessions->users? we always have the user right?
 @app.route('/login', methods=['POST'])
 @jsonify
 def login_user():
-  username = request.form['username']
+  username = sanitize_username(request.form['username'])
   password = request.form['password']
   gcm_id = request.form.get('gcm_id')
   user = get_user(username)
@@ -35,7 +37,11 @@ def login_user():
 @app.route('/register', methods=['POST'])
 @jsonify
 def register_user():
-  username = request.form['username']
+  # we store the name the user registers with as the display name
+  # we sanitize a different username to make collisions easier to find
+  display_name = request.form['username']
+  username = sanitize_username(display_name)
+
   password = request.form['password']
   email = request.form['email']
   gcm_id = request.form.get('gcm_id')

@@ -6,6 +6,7 @@ from flask import request
 from relay import app
 from relay.decorators import jsonify
 from relay.decorators import session_required
+from relay.decorators import sanitize_user
 
 from relay.models.relays import add_relay_model
 from relay.models.relays import get_relay
@@ -38,6 +39,7 @@ def relay_preview():
 
 @app.route('/relays/<user_id>/archive', methods=['POST'])
 @jsonify
+@sanitize_user
 @session_required
 def archive_relay(user_id, user=None):
   sent_relay_id = long(request.form['relay_id'])
@@ -70,6 +72,7 @@ def reelay(sent_relay_id=None):
 
 @app.route('/relays/<user_id>/delete', methods=['POST'])
 @jsonify
+@sanitize_user
 @session_required
 def delete_relay(user_id, user=None):
   sent_relay_id = long(request.form['relay_id'])
@@ -92,6 +95,7 @@ def delete_relay(user_id, user=None):
 
 @app.route('/relays/from/<user_id>')
 @jsonify
+@sanitize_user
 @session_required
 def get_relays_from_user(user_id=None, user=None):
   offset = int(request.args.get('offset', 0))
@@ -112,6 +116,7 @@ def get_relays_from_user(user_id=None, user=None):
 
 @app.route('/relays/to/<user_id>')
 @jsonify
+@sanitize_user
 @session_required
 def get_relay_to_user(user_id=None, user=None, archived=False):
   archived = bool(int(request.args.get('archived', 0)))
