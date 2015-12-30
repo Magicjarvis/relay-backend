@@ -1,11 +1,24 @@
+import logging
 import flask
-from flask import json, Response
+from flask import json, Response, request
 from functools import wraps
 from util import sanitize_username
 
 from google.appengine.ext import ndb
 from models.users import User
 
+
+def session_required(f):
+  @wraps(f)
+  def grab_user_for_session(*args, **kwargs):
+    session = request.headers.get('Authorization')
+    logging.info(session)
+    user = None
+    if session:
+      user = User.query().filter(User.session_token == session).get()
+      logging.info("Authenticated user: " + str(user.key.id() if user else None))
+    return f(*args, user=user, **kwargs)
+  return grab_user_for_session
 
 def jsonify(f):
   @wraps(f)

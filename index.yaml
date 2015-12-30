@@ -12,6 +12,12 @@ indexes:
 
 - kind: SentRelay
   properties:
+  - name: archived
+  - name: timestamp
+    direction: desc
+
+- kind: SentRelay
+  properties:
   - name: not_archived
   - name: timestamp
     direction: desc

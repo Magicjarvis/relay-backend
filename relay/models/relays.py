@@ -20,10 +20,11 @@ def get_sent_relays_for_user(user, limit=10, offset=0):
     SentRelay.sender == user
   ).iter(options=ndb.QueryOptions(limit=limit, offset=offset))
 
-def get_relays_for_recipient(user_id, offset):
+def get_relays_for_recipient(user_id, offset, archived=False):
   qo = ndb.QueryOptions(limit=10, offset=offset)
+  archive_clause = SentRelay.archived if archived else SentRelay.not_archived
   sent_relays_iter = SentRelay.query().filter(
-    SentRelay.not_archived == user_id, # people who haven't archived
+    archive_clause == user_id,
   ).order(
     -SentRelay.timestamp
   ).iter(options=qo)

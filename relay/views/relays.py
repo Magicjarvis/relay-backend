@@ -5,7 +5,7 @@ from flask import request
 
 from relay import app
 from relay.decorators import jsonify
-from relay.decorators import validate_user
+from relay.decorators import session_required
 
 from relay.models.relays import add_relay_model
 from relay.models.relays import get_relay
@@ -38,7 +38,8 @@ def relay_preview():
 
 @app.route('/relays/<user_id>/archive', methods=['POST'])
 @jsonify
-def archive_relay(user_id):
+@session_required
+def archive_relay(user_id, user=None):
   sent_relay_id = long(request.form['relay_id'])
   sent_relay = get_sent_relay(sent_relay_id)
   sent_relay.not_archived.remove(user_id)
@@ -69,7 +70,8 @@ def reelay(sent_relay_id=None):
 
 @app.route('/relays/<user_id>/delete', methods=['POST'])
 @jsonify
-def delete_relay(user_id):
+@session_required
+def delete_relay(user_id, user=None):
   sent_relay_id = long(request.form['relay_id'])
   sent_relay = get_sent_relay(sent_relay_id)
   recipients = sent_relay.recipients
@@ -90,8 +92,8 @@ def delete_relay(user_id):
 
 @app.route('/relays/from/<user_id>')
 @jsonify
-@validate_user
-def get_relays_from_user(user_id=None):
+@session_required
+def get_relays_from_user(user_id=None, user=None):
   offset = int(request.args.get('offset', 0))
   limit = int(request.args.get('limit', 10))
 
@@ -110,13 +112,16 @@ def get_relays_from_user(user_id=None):
 
 @app.route('/relays/to/<user_id>')
 @jsonify
-@validate_user
-def get_relay_to_user(user_id=None):
+@session_required
+def get_relay_to_user(user_id=None, user=None, archived=False):
+  archived = bool(int(request.args.get('archived', 0)))
+  return _get_relay_to_user(user_id, user, archived)
+
+def _get_relay_to_user(user_id=None, user=None, archived=False):
   offset = int(request.args.get('offset', 0))
-  relays = get_relays_for_recipient(user_id, offset)
+  relays = get_relays_for_recipient(user_id, offset, archived=archived)
   return {
     'relays' : [
       make_sent_relay_map(r) for r in relays
-      if r.sender != user_id
     ]
   }
