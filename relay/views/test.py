@@ -25,5 +25,6 @@ def test_latency(user_id, user=None):
 @app.route('/clear')
 @jsonify
 def clear_out_db():
-  delete_db()
+  drop_users = bool(request.args.get('drop_users', 0))
+  delete_db(drop_users=drop_users)
   return {}

@@ -3,7 +3,7 @@ from flask import request
 
 from relay import app
 from relay.decorators import jsonify
-from relay.decorators import validate_user
+from relay.decorators import session_required
 
 from relay.models.users import add_user
 from relay.models.users import get_user
@@ -23,7 +23,8 @@ def login_user():
   session_token = None
   if user and verify_password(password, user.password):
     session_token = generate_session_id()
-    user.session_token = session_token
+    if session_token not in user.session_tokens:
+      user.session_tokens.append(session_token)
     if gcm_id and gcm_id not in user.gcm_ids:
       user.gcm_ids.append(gcm_id) 
     user.put()
@@ -54,19 +55,29 @@ def register_user():
   return {'session': result}
 
 
-@app.route('/unregister', methods=['POST'])
+@app.route('/logout', methods=['POST'])
 @jsonify
-def unregister_gcm():
-  username = sanitize_username(request.form['username'])
-  gcm_id = request.form['gcm_id']
-  result = True
-  # unregister the gcm_id
-  user = get_user(username)
+@session_required
+def logout(user=None):
+  # enforce later
+  session_token = request.headers.get('Authorization')
+  gcm_id = request.form.get('gcm_id')
+
   if user:
-    if gcm_id in user.gcm_ids:
-      user.gcm_ids.remove(gcm_id)
-      user.gcm_ids = list(set(user.gcm_ids))
-      user.put()
-  else:
-    result = False
-  return {'success': result}
+    _unregister_session(user, session_token)
+    _unregister_gcm(user, gcm_id)
+
+  result = user.put()
+  return {'success': result is not None}
+
+
+def _unregister_session(user, session_token):
+  if session_token in user.session_tokens:
+    user.session_tokens.remove(session_token)
+    user.session_tokens = list(set(user.session_tokens))
+
+
+def _unregister_gcm(user, gcm_id):
+  if gcm_id in user.gcm_ids:
+    user.gcm_ids.remove(gcm_id)
+    user.gcm_ids = list(set(user.gcm_ids))

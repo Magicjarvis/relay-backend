@@ -32,6 +32,5 @@ class User(ndb.Model):
   """Models a user."""
   password = ndb.StringProperty(required=True)
   email = ndb.StringProperty()
-
-  session_token = ndb.StringProperty(indexed=True)
+  session_tokens = ndb.StringProperty(indexed=True, repeated=True)
   gcm_ids = ndb.StringProperty(repeated=True)

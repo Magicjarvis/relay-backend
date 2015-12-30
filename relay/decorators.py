@@ -15,7 +15,7 @@ def session_required(f):
     logging.info(session)
     user = None
     if session:
-      user = User.query().filter(User.session_token == session).get()
+      user = User.query().filter(User.session_tokens == session).get()
       logging.info("Authenticated user: " + str(user.key.id() if user else None))
     return f(*args, user=user, **kwargs)
   return grab_user_for_session
