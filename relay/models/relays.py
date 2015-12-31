@@ -74,9 +74,6 @@ def add_relay(sender, url, recipients, save=False):
   else:
     recipients = []
 
-  if sender in recipients:
-    recipients.remove(sender)
-
   if relay is None:
     relay = add_relay_model(url)
 

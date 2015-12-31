@@ -65,15 +65,18 @@ def register_user():
 @jsonify
 @session_required
 def logout(user=None):
+  if not user:
+    return {'success': False}
+
   # enforce later
   session_token = request.headers.get('Authorization')
   gcm_id = request.form.get('gcm_id')
 
-  if user:
-    _unregister_session(user, session_token)
-    _unregister_gcm(user, gcm_id)
+  _unregister_session(user, session_token)
+  _unregister_gcm(user, gcm_id)
 
   result = user.put()
+
   return {'success': result is not None}
 
 
