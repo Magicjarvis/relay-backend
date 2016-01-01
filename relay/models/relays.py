@@ -78,6 +78,10 @@ def add_relay(sender, url, recipients, save=False):
     relay = add_relay_model(url)
 
   relay_key = relay.put()
+  if not recipients:
+    # we go ahead and make a relay for caching purposes
+    # dont go further than that
+    return None
 
   sent_relay = SentRelay()
   sent_relay.sender = sanitize_username(sender)

@@ -6,12 +6,13 @@ from flask import request
 from relay import app
 from relay.decorators import jsonify
 
-from relay.models.friends import add_friend_request
 from relay.models.friends import confirm_friend_request
 from relay.models.friends import get_friendship
 from relay.models.friends import get_friend_request
 
 from relay.util import sanitize_username
+
+from google.appengine.api import taskqueue
 
 
 @app.route('/friend_requests', methods=['POST'])
@@ -33,8 +34,14 @@ def post_friend_request():
 
   existing_request = get_friend_request(recipient, sender)
   if recipient != sender and not existing_request:
-    friend_request = add_friend_request(sender, recipient)
-    success = friend_request is not None
+    task = taskqueue.add(
+      url='/post_friend_request_queue',
+      params={
+        'sender': sender,
+        'recipient': recipient,
+      }
+    )
+    success = task.was_enqueued
 
   return {'success': success}
 

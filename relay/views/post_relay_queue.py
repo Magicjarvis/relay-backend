@@ -9,31 +9,50 @@ from relay.decorators import jsonify
 
 from relay.models.relays import add_relay
 from relay.models.users import get_user
+from relay.models.friends import add_friend_request
 from relay.util import extract_url
 
 from gae_python_gcm.gcm import GCMMessage
 from gae_python_gcm.gcm import GCMConnection
 
 
-# util needs to be added somewhere else?
-def send_push_notification(sender, recipients, title):
-  android_payload = {'sender': sender, 'title': title}
-  logging.info('push notification payload %s'%(str(android_payload)))
-  #change the way you do this. get the relay object out of that other method.
-  # just return metadata, that would be cool
-  # TODO
-  success = True
+NEW_FRIEND_REQUEST = 'new_friend_request'
+NEW_RELAY = 'new_relay'
+GCM_CONN = None
+
+
+def get_gcm_connection():
+  global GCM_CONN
+  if not GCM_CONN:
+    GCM_CONN = GCMConnection()
+  return GCM_CONN
+
+
+def send_new_friend_request_notification(sender, recipient):
+  recipient_user = get_user(recipient)
+  if recipient_user:
+    android_payload = {
+      'sender': sender,
+      'type': NEW_FRIEND_REQUEST
+    }
+    send_push_notification(android_payload, recipient_user)
+
+
+def send_new_relay_notification(sender, recipients, title, user):
+  android_payload = {'sender': sender, 'title': title, 'type': NEW_RELAY}
   for recipient in recipients.split(','):
     recipient_user = get_user(recipient)
-
     if recipient_user and len(recipient_user.gcm_ids):
-      gcm_message = GCMMessage(recipient_user.gcm_ids, android_payload)
-      gcm_conn = GCMConnection()
-      logging.info('whaterver this is %s'%(str(gcm_message)))
-      gcm_conn.notify_device(gcm_message)
-    else:
-      success = False
-  return success
+      send_push_notification(android_payload, recipient_user)
+
+
+def send_push_notification(payload, recipient_user):
+  android_payload['user'] = recipient_user.key.id()
+  logging.info('Sending %s to %s'%(str(payload), recipient_user))
+  if recipient_user and len(recipient_user.gcm_ids):
+    gcm_message = GCMMessage(recipient_user.gcm_ids, payload)
+    get_gcm_connection().notify_device(gcm_message)
+
 
 @app.route('/post_relay_queue', methods=['POST'])
 @jsonify
@@ -46,5 +65,19 @@ def post_relay():
   relay = add_relay(sender, url, recipients)
   result = relay is not None
   if relay:
-    send_push_notification(sender, recipients, relay.title)
+    send_new_relay_notification(sender, recipients, relay.title)
+  return {'success': result}
+
+
+@app.route('/post_friend_request_queue', methods=['POST'])
+@jsonify
+def post_friend_request_to_queue():
+  sender = request.form['sender']
+  recipient = request.form['recipient']
+  if not sender or not recipient:
+    return {'success': False}
+  friend_request = add_friend_request(sender, recipient)
+  result = friend_request is not None
+  if friend_request:
+    send_new_friend_request_notification(sender, recipient)
   return {'success': result}
