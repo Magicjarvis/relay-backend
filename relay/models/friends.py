@@ -61,9 +61,11 @@ class Friendship(ndb.Model):
   user = ndb.StringProperty(indexed=True, required=True)
   other_user = ndb.StringProperty(indexed=True, required=True)
   active = ndb.BooleanProperty(indexed=True, default=True)
+  time_created = ndb.DateTimeProperty(auto_now_add=True)
 
 
 class FriendRequest(ndb.Model):
   recipient = ndb.StringProperty(indexed=True, required=True)
   sender = ndb.StringProperty(indexed=True, required=True)
   active = ndb.BooleanProperty(indexed=True, default=True)
+  time_created = ndb.DateTimeProperty(auto_now_add=True)

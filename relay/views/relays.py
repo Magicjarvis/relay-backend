@@ -59,15 +59,23 @@ def reelay(sent_relay_id=None):
     offset = int(request.args.get('offset', 0))
     return {'relays': get_relays(sent_relay_id, offset)}
   elif request.method == 'POST':
-    task = taskqueue.add(
-      url='/post_relay_queue',
-      params={
-        'url': request.form['url'],
-        'sender': request.form['sender'],
-        'recipients': request.form['recipients'],
-      }
+    task = queue_relay(
+      request.form['url'],
+      request.form['sender'],
+      request.form['recipients'],
     )
     return {'success': task.was_enqueued}
+
+def queue_relay(url, sender, recipients):
+  task = taskqueue.add(
+    url='/post_relay_queue',
+    params={
+      'url': url,
+      'sender': sender,
+      'recipients': recipients,
+    }
+  )
+  return task.was_enqueued
 
 
 @app.route('/relays/<user_id>/delete', methods=['POST'])

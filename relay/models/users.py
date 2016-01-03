@@ -39,3 +39,4 @@ class User(ndb.Model):
   email = ndb.StringProperty()
   session_tokens = ndb.StringProperty(indexed=True, repeated=True)
   gcm_ids = ndb.StringProperty(repeated=True)
+  time_created = ndb.DateTimeProperty(auto_now_add=True)

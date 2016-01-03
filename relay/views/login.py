@@ -12,6 +12,7 @@ from relay.auth import generate_session_id
 from relay.auth import verify_password 
 
 from relay.util import sanitize_username
+from relay.views.relays import queue_relay
 
 
 # todo: add logout, should sessions->users? we always have the user right?
@@ -58,7 +59,13 @@ def register_user():
     )
     if new_user:
       result = session_token
+      send_starter_relays(username)
   return {'session': result}
+
+
+def send_starter_relays(username):
+  for link in ['http://imgur.com/b6sQSIU']:
+    queue_relay(link, 'relay', username)
 
 
 @app.route('/logout', methods=['POST'])

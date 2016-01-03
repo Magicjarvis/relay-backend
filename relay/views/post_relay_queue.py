@@ -38,7 +38,7 @@ def send_new_friend_request_notification(sender, recipient):
     send_push_notification(android_payload, recipient_user)
 
 
-def send_new_relay_notification(sender, recipients, title, user):
+def send_new_relay_notification(sender, recipients, title):
   android_payload = {'sender': sender, 'title': title, 'type': NEW_RELAY}
   for recipient in recipients.split(','):
     recipient_user = get_user(recipient)
@@ -47,7 +47,7 @@ def send_new_relay_notification(sender, recipients, title, user):
 
 
 def send_push_notification(payload, recipient_user):
-  android_payload['user'] = recipient_user.key.id()
+  payload['user'] = recipient_user.key.id()
   logging.info('Sending %s to %s'%(str(payload), recipient_user))
   if recipient_user and len(recipient_user.gcm_ids):
     gcm_message = GCMMessage(recipient_user.gcm_ids, payload)

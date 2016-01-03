@@ -104,6 +104,7 @@ class Relay(ndb.Model):
   image = ndb.StringProperty()
   description = ndb.StringProperty()
   kind = ndb.StringProperty()
+  time_created = ndb.DateTimeProperty(auto_now_add=True)
 
 
 class SentRelay(ndb.Model):

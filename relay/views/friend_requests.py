@@ -22,8 +22,9 @@ def post_friend_request():
   recipient = sanitize_username(request.form['recipient'])
   sender = sanitize_username(request.form['sender'])
 
-  # existing friendship?
-  if get_friendship(sender, recipient):
+  # existing friendship or request? if there's an inactive request we'll make
+  # another. this allows for spamming right now, but we'll do something
+  if get_friendship(sender, recipient) or get_friend_request(sender, recipient):
     return {'success': False}
   
   # maybe you're requesting someone who's requested you
@@ -46,9 +47,24 @@ def post_friend_request():
   return {'success': success}
 
 
+@app.route('/friend_requests/reject', methods=['POST'])
+@jsonify
+def post_friend_reject():
+  result = False
+  recipient = sanitize_username(request.form['recipient'])
+  sender = sanitize_username(request.form['sender'])
+  # we need an existing friend request
+  existing_request = get_friend_request(sender, recipient)
+  if existing_request:
+    existing_request.active = False
+    existing_request.put()
+    result = True
+  return {'success': result}
+
+
 @app.route('/friend_requests/accept', methods=['POST'])
 @jsonify
-def post_friends():
+def post_friend_accept():
   result = False
   recipient = sanitize_username(request.form['recipient'])
   sender = sanitize_username(request.form['sender'])
