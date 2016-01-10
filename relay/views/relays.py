@@ -14,6 +14,8 @@ from relay.models.relays import get_relays
 from relay.models.relays import get_relays_for_recipient
 from relay.models.relays import get_sent_relay
 from relay.models.relays import get_sent_relays_for_user
+from relay.models.relays import add_comment
+from relay.models.relays import add_like
 
 from relay.util import extract_url
 from relay.util import make_relay_map
@@ -51,6 +53,27 @@ def archive_relay(user_id, user=None):
   return {'success': result is not None}
 
 
+@app.route('/relays/<user_id>/like', methods=['POST'])
+@jsonify
+@sanitize_user
+@session_required
+def post_like(user_id, user=None):
+  sent_relay_id = long(request.form['relay_id'])
+  result = add_like(sent_relay_id, user.key.id())
+  return {'success': result}
+
+
+@app.route('/relays/<user_id>/comment', methods=['POST'])
+@jsonify
+@sanitize_user
+@session_required
+def post_comment(user_id, user=None):
+  sent_relay_id = long(request.form['relay_id'])
+  message = request.form['message']
+  result = add_comment(sent_relay_id, user.key.id(), message)
+  return {'success': result}
+
+
 @app.route('/relays', methods=['GET', 'POST'])
 @app.route('/relays/<int:sent_relay_id>')
 @jsonify
@@ -59,12 +82,13 @@ def reelay(sent_relay_id=None):
     offset = int(request.args.get('offset', 0))
     return {'relays': get_relays(sent_relay_id, offset)}
   elif request.method == 'POST':
-    task = queue_relay(
+    success = queue_relay(
       request.form['url'],
       request.form['sender'],
       request.form['recipients'],
     )
-    return {'success': task.was_enqueued}
+    return {'success': success}
+
 
 def queue_relay(url, sender, recipients):
   task = taskqueue.add(
@@ -115,8 +139,6 @@ def get_relays_from_user(user_id=None, user=None):
   for sent_relay_item in sent_relay_items:
     item_map = make_sent_relay_map(sent_relay_item)
     item_map.pop('sender', None)
-    if user_id in sent_relay_item.recipients:
-      continue
     item_map['recipients'] = sent_relay_item.recipients
     sent_relays.append(item_map)
   return {'relays': sent_relays}

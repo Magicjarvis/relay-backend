@@ -10,6 +10,8 @@ from relay.models.friends import confirm_friend_request
 from relay.models.friends import get_friendship
 from relay.models.friends import get_friend_request
 
+from relay.models.users import get_user
+
 from relay.util import sanitize_username
 
 from google.appengine.api import taskqueue
@@ -24,7 +26,7 @@ def post_friend_request():
 
   # existing friendship or request? if there's an inactive request we'll make
   # another. this allows for spamming right now, but we'll do something
-  if get_friendship(sender, recipient) or get_friend_request(sender, recipient):
+  if recipient == sender or not get_user(recipient) or get_friendship(sender, recipient) or get_friend_request(sender, recipient):
     return {'success': False}
   
   # maybe you're requesting someone who's requested you

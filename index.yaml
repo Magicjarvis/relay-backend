@@ -10,6 +10,15 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Comment
+  properties:
+  - name: time_created
+
+- kind: Comment
+  properties:
+  - name: time_created
+    direction: desc
+
 - kind: SentRelay
   properties:
   - name: archived
