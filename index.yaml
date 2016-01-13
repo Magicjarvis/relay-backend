@@ -19,6 +19,15 @@ indexes:
   - name: time_created
     direction: desc
 
+- kind: Comment
+  properties:
+  - name: time_created
+
+- kind: Comment
+  properties:
+  - name: time_created
+    direction: desc
+
 - kind: SentRelay
   properties:
   - name: archived

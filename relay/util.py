@@ -56,7 +56,7 @@ def make_sent_relay_map(sent_relay):
       'id': sent_relay.key.id(),
       'sender': sent_relay.sender,
       'timestamp': time.mktime(sent_relay.timestamp.timetuple()),
-      'comments': [make_comment_map(comment.get()) for comment in sent_relay.comments],
+      'comments': [make_comment_map(comment.get()) for comment in sent_relay.comments if comment.get()],
       'likes': [like.get().sender for like in sent_relay.likes if like.get().active]
     }
   )

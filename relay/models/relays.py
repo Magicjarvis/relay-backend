@@ -94,6 +94,13 @@ def unlike(like_id, sender):
     return True
   return False
 
+def delete_comment(comment_id, sender):
+  comment = Comment.get_by_id(comment_id)
+  if comment and comment.sender == sender:
+    comment.key.delete()
+    return True
+  return False
+
 
 @ndb.transactional(xg=True)
 def add_comment(sent_relay_id, sender, message):

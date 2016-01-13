@@ -15,7 +15,9 @@ from relay.models.relays import get_relays_for_recipient
 from relay.models.relays import get_sent_relay
 from relay.models.relays import get_sent_relays_for_user
 from relay.models.relays import add_comment
+from relay.models.relays import delete_comment
 from relay.models.relays import add_like
+from relay.models.relays import unlike
 
 from relay.util import extract_url
 from relay.util import make_relay_map
@@ -71,6 +73,26 @@ def post_comment(user_id, user=None):
   sent_relay_id = long(request.form['relay_id'])
   message = request.form['message']
   result = add_comment(sent_relay_id, user.key.id(), message)
+  return {'success': result}
+
+
+@app.route('/relays/<user_id>/like/delete', methods=['POST'])
+@jsonify
+@sanitize_user
+@session_required
+def remove_like(user_id, user=None):
+  like_id = long(request.form['like_id'])
+  result = delete_like(like_id, user.key.id())
+  return {'success': result}
+
+
+@app.route('/relays/<user_id>/comment/delete', methods=['POST'])
+@jsonify
+@sanitize_user
+@session_required
+def remove_comment(user_id, user=None):
+  comment_id = long(request.form['comment_id'])
+  result = delete_comment(comment_id, user.key.id())
   return {'success': result}
 
 
