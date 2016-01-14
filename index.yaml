@@ -11,19 +11,12 @@ indexes:
 # your application using appcfg.py.
 
 - kind: Comment
+  ancestor: yes
   properties:
   - name: time_created
 
 - kind: Comment
-  properties:
-  - name: time_created
-    direction: desc
-
-- kind: Comment
-  properties:
-  - name: time_created
-
-- kind: Comment
+  ancestor: yes
   properties:
   - name: time_created
     direction: desc

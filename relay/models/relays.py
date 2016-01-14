@@ -78,6 +78,13 @@ def add_relay_model(url):
 @ndb.transactional(xg=True)
 def add_like(sent_relay_id, sender):
   sent_relay = SentRelay.get_by_id(sent_relay_id)
+  # is there a better way to do this? we might wanna store the relay id on
+  # these models or maybe it's implicitly stored
+  for existing_like_key in sent_relay.likes:
+    existing_like = existing_like_key.get()
+    if sanitize_username(existing_like.sender) == sanitize_username(sender):
+      return False
+
   like_key = Like(
     sender=sender,
   ).put()

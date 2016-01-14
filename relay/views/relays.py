@@ -55,40 +55,36 @@ def archive_relay(user_id, user=None):
   return {'success': result is not None}
 
 
-@app.route('/relays/<user_id>/like', methods=['POST'])
+@app.route('/relays/like', methods=['POST'])
 @jsonify
-@sanitize_user
 @session_required
-def post_like(user_id, user=None):
+def post_like(user=None):
   sent_relay_id = long(request.form['relay_id'])
   result = add_like(sent_relay_id, user.key.id())
   return {'success': result}
 
 
-@app.route('/relays/<user_id>/comment', methods=['POST'])
+@app.route('/relays/comment', methods=['POST'])
 @jsonify
-@sanitize_user
 @session_required
-def post_comment(user_id, user=None):
+def post_comment(user=None):
   sent_relay_id = long(request.form['relay_id'])
   message = request.form['message']
   result = add_comment(sent_relay_id, user.key.id(), message)
   return {'success': result}
 
 
-@app.route('/relays/<user_id>/like/delete', methods=['POST'])
+@app.route('/relays/like/delete', methods=['POST'])
 @jsonify
-@sanitize_user
 @session_required
-def remove_like(user_id, user=None):
+def remove_like(user=None):
   like_id = long(request.form['like_id'])
   result = delete_like(like_id, user.key.id())
   return {'success': result}
 
 
-@app.route('/relays/<user_id>/comment/delete', methods=['POST'])
+@app.route('/relays/comment/delete', methods=['POST'])
 @jsonify
-@sanitize_user
 @session_required
 def remove_comment(user_id, user=None):
   comment_id = long(request.form['comment_id'])

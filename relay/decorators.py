@@ -12,7 +12,6 @@ def session_required(f):
   @wraps(f)
   def grab_user_for_session(*args, **kwargs):
     session = request.headers.get('Authorization')
-    logging.info(session)
     user = None
     if session:
       user = User.query().filter(User.session_tokens == session).get()
