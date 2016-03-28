@@ -44,7 +44,7 @@ def make_comment_map(comment):
   return {
       'id': comment.key.id(),
       'message': comment.message,
-      'time_created': comment.time_created,
+      'time_created': time.mktime(comment.time_created.timetuple()),
       'sender': comment.sender
   }
 
@@ -52,7 +52,7 @@ def make_comment_map(comment):
 def make_like_map(like):
   return {
       'id': like.key.id(),
-      'time_created': like.time_created,
+      'time_created': time.mktime(like.time_created.timetuple()),
       'sender': like.sender
   }
 
