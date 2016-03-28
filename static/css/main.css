@@ -1,0 +1,65 @@
+* {
+    border: 1px solid red !important;
+
+    /* What does `border-sizing: border-box` dooooo! */
+    box-sizing: border-box;
+}
+
+.grid {
+    max-width: 960px;
+    margin: 0 auto;
+}
+.row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.col-1 {
+    width: 8.33%
+}
+
+.col-2 {
+    width: 16.67%
+}
+
+.col-3 {
+    width: 25.00%
+}
+
+.col-4 {
+    width: 33.33%
+}
+
+.col-5 {
+    width: 41.67%
+}
+
+.col-6 {
+    width: 50.00%
+}
+
+.col-7 {
+    width: 58.33%
+}
+
+.col-8 {
+    width: 66.67%
+}
+
+.col-9 {
+    width: 75.00%
+}
+
+.col-10 {
+    width: 83.33%
+}
+
+.col-11 {
+    width: 91.67%
+}
+
+.col-12 {
+    width: 100.00%
+}
+

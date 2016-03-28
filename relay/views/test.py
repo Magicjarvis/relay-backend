@@ -9,6 +9,7 @@ from relay.models import delete_db
 from relay.util import sanitize_username
 
 from flask import request
+from flask import render_template
 
 @app.route('/test/<user_id>')
 @jsonify
@@ -28,3 +29,7 @@ def clear_out_db():
   drop_users = bool(request.args.get('drop_users', 0))
   delete_db(drop_users=drop_users)
   return {}
+
+@app.route("/jarvis")
+def template_test():
+    return render_template('template.html', my_string="Test!", my_list=[0,1,2,3,4,5])

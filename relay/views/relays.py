@@ -2,6 +2,7 @@
 import logging 
 
 from flask import request
+from flask import render_template
 
 from relay import app
 from relay.decorators import jsonify
@@ -106,6 +107,11 @@ def reelay(sent_relay_id=None):
       request.form['recipients'],
     )
     return {'success': success}
+
+@app.route('/a')
+def test_relay_html():
+  relays = get_relays(None, 0)
+  return render_template('template.html', relays=relays)
 
 
 def queue_relay(url, sender, recipients):
