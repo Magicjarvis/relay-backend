@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/js/materialize.min.js"></script>
+        <title>Relay | Let's talk about links</title>
+    </head>
+
+    <body>
+        <nav>
+        <div class="nav-wrapper blue">
+            <a href="#" class="brand-logo">Relay</a>
+            <ul id="nav-mobile" class="right  hide-on-med-and-down">
+                <li><a href="#">Sent</a></li>
+                <li><a href="#">Archived</a></li>
+                <li><a href="#">Friends</a></li>
+            </ul>
+        </div>
+        </nav>  
+        <div class="container">
+            {% block relays %}{% endblock %}
+        </div>
+    </body>
+</html>

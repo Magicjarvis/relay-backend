@@ -1,0 +1,18 @@
+{% block relay_item %}
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-image">
+                <img src={{relay['image']}}>
+                <span class="card-title">{{relay['title']}}</span>
+            </div>
+            <div class="card-content">
+                <p>{{relay['description']}}</p>
+            </div>
+            <div class="card-action">
+                <a href="#">Comment</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

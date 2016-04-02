@@ -5,6 +5,7 @@ from relay.decorators import jsonify
 from relay.decorators import session_required
 from relay.models.relays import Relay
 from relay.models.relays import SentRelay
+from relay.models.relays import get_relays
 from relay.models import delete_db
 from relay.util import sanitize_username
 
@@ -32,4 +33,5 @@ def clear_out_db():
 
 @app.route("/jarvis")
 def template_test():
-    return render_template('template.html', my_string="Test!", my_list=[0,1,2,3,4,5])
+    relays = get_relays(None, 0)
+    return render_template('relays.html', relays=relays)

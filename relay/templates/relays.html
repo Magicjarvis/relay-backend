@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block relays %}
+{% for relay in relays %}
+    {% include "relay_item.html" %}
+{% endfor %}
+{% endblock %}
